@@ -1,14 +1,22 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, ContactShadows, Sparkles, Environment } from '@react-three/drei';
 import PerfumeBottle3D from './PerfumeBottle3D';
+
+function ResponsiveCamera() {
+  const { viewport } = useThree();
+  const isPortrait = viewport.aspect < 1.0;
+  // On portrait/phone screens, pull camera to z=9.8 so bottle never clips horizontally
+  const cameraZ = isPortrait ? 9.8 : 8.6;
+  return <PerspectiveCamera makeDefault position={[0, 0, cameraZ]} fov={33} />;
+}
 
 export default function PerfumeScene({
   liquidColor = "#05472A",
   liquidEmissive = "#022B18",
-  bottlePosition = [0, 0.25, 0],
+  bottlePosition = [0, 0.22, 0],
   bottleRotation = [0, 0, 0],
-  bottleScale = 0.72,
+  bottleScale = 0.75,
   particleColor = "#22c55e",
   scrollProgress = 0,
   scrollVelocity = 0
@@ -39,7 +47,7 @@ export default function PerfumeScene({
         dpr={[1, 2]}
         className="pointer-events-auto"
       >
-        <PerspectiveCamera makeDefault position={[0, 0, 8.6]} fov={33} />
+        <ResponsiveCamera />
 
         {/* Realistic Forest Environment Reflection Map */}
         <Suspense fallback={null}>
@@ -78,7 +86,7 @@ export default function PerfumeScene({
           color="#34d399" 
         />
 
-        {/* Ethereal Floating Forest Particles / Pollen Motes */}
+        {/* Ethereal Floating Forest Particles */}
         <Sparkles 
           count={35}
           scale={6.5}
