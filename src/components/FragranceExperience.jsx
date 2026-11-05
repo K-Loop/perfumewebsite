@@ -43,7 +43,6 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
   const scrollToFragrance = useCallback((idx) => {
     const trigger = ScrollTrigger.getById("fragrance-hero-scroll");
     if (!trigger) return;
-    // idx 0 -> p = 1/6, idx 1 -> p = 2/6, etc.
     const targetProgress = (idx + 1) / 6;
     const targetScroll = trigger.start + targetProgress * (trigger.end - trigger.start);
     window.scrollTo({
@@ -72,9 +71,11 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
 
     const { isMobile, isTablet } = checkLayout();
 
-    // Initial safe hero settings
-    const initialPos = [0, isMobile ? 0.12 : 0.22, 0];
-    const initialScale = isMobile ? 0.38 : isTablet ? 0.64 : 0.75;
+    // Initial safe hero settings:
+    // On mobile, bottle sits at y = 0.42 (upper half, leaving lower half clear for hero text)
+    // On desktop, bottle sits at y = 0.22
+    const initialPos = [0, isMobile ? 0.42 : 0.22, 0];
+    const initialScale = isMobile ? 0.35 : isTablet ? 0.64 : 0.75;
 
     setBottleTransform({
       position: initialPos,
@@ -90,14 +91,14 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
           start: "top top",
           end: "+=650vh",
           pin: true,
-          scrub: 0.8, // Immediate, silky-smooth 60/120/144Hz responsive follow
+          scrub: 0.8,
           anticipatePin: 1,
           snap: {
             snapTo: SNAP_STOPS,
             duration: { min: 0.20, max: 0.38 },
             delay: 0.05,
             ease: "power2.out",
-            inertia: false // Prevents skipping frames when fast scrolling
+            inertia: false
           },
           onUpdate: (self) => {
             const p = self.progress;
@@ -108,12 +109,6 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
             setScrollVelocity(velocity);
 
             // 6 Distinct Fragrance Chapters with exact midpoints:
-            // Scent 0: [0.00, 0.25) -> Snap: 0.167
-            // Scent 1: [0.25, 0.42) -> Snap: 0.333
-            // Scent 2: [0.42, 0.58) -> Snap: 0.500
-            // Scent 3: [0.58, 0.75) -> Snap: 0.667
-            // Scent 4: [0.75, 0.92) -> Snap: 0.833
-            // Scent 5: [0.92, 1.00] -> Snap: 1.000
             let scentIdx = 0;
             if (p < 0.25) {
               scentIdx = 0; // 01 Ocean Breeze
@@ -129,7 +124,7 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
               scentIdx = 5; // 06 Midnight Terrain
             }
 
-            // CRITICAL OPTIMIZATION: Only update fragrance state when index crosses boundary!
+            // Only update state when boundary is crossed
             if (scentIdx !== activeIndexRef.current) {
               activeIndexRef.current = scentIdx;
               setActiveFragranceIndex(scentIdx);
@@ -141,26 +136,26 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
 
             // Safe, responsive bottle trajectory:
             // Desktop: travels to left (x = -1.95, y = 0.08)
-            // Mobile: stays safely centered in upper viewport (x = 0, y = 0.50, scale = 0.35)
+            // Mobile: sits at top (x = 0, y = 1.25, scale = 0.30) well clear of lower card!
             if (p <= 0.06) {
               setBottleTransform({
-                position: [0, currentIsMobile ? 0.12 : 0.22, 0],
+                position: [0, currentIsMobile ? 0.42 : 0.22, 0],
                 rotation: [0, 0, 0],
-                scale: currentIsMobile ? 0.38 : currentIsTablet ? 0.64 : 0.75
+                scale: currentIsMobile ? 0.35 : currentIsTablet ? 0.64 : 0.75
               });
               hasSettledRef.current = false;
             } else {
               const shiftProgress = Math.min(1, (p - 0.06) / 0.10);
               const targetX = currentIsMobile ? 0 : currentIsTablet ? -1.35 : -1.95;
-              const targetY = currentIsMobile ? 0.50 : 0.08;
-              const targetScale = currentIsMobile ? 0.35 : currentIsTablet ? 0.60 : 0.70;
+              const targetY = currentIsMobile ? 1.25 : 0.08;
+              const targetScale = currentIsMobile ? 0.30 : currentIsTablet ? 0.60 : 0.70;
               const targetRotY = currentIsMobile ? (shiftProgress * 0.18) : 0.32;
 
               if (shiftProgress < 1.0) {
                 setBottleTransform({
                   position: [
                     gsap.utils.interpolate(0, targetX, shiftProgress),
-                    gsap.utils.interpolate(currentIsMobile ? 0.12 : 0.22, targetY, shiftProgress),
+                    gsap.utils.interpolate(currentIsMobile ? 0.42 : 0.22, targetY, shiftProgress),
                     0
                   ],
                   rotation: [
@@ -169,14 +164,13 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
                     0
                   ],
                   scale: gsap.utils.interpolate(
-                    currentIsMobile ? 0.38 : 0.75,
+                    currentIsMobile ? 0.35 : 0.75,
                     targetScale,
                     shiftProgress
                   )
                 });
                 hasSettledRef.current = false;
               } else if (!hasSettledRef.current) {
-                // Lock exact final position once to avoid 144Hz continuous React re-renders!
                 setBottleTransform({
                   position: [targetX, targetY, 0],
                   rotation: [0, targetRotY, 0],
@@ -293,21 +287,21 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
     <section
       ref={containerRef}
       id="hero"
-      className="relative w-full h-screen overflow-hidden bg-[#06040a] select-none"
+      className="relative w-full h-screen h-[100dvh] overflow-hidden bg-[#06040a] select-none"
     >
-      {/* ATMOSPHERIC BACKGROUNDS LAYER (All 6 Luxury Atmospheres) */}
+      {/* ATMOSPHERIC BACKGROUNDS LAYER */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {FRAGRANCES.map((fragrance, idx) => (
           <div
             key={fragrance.id}
-            className={`absolute inset-0 bg-cover bg-center will-change-opacity transform-gpu ${activeFragranceIndex === idx ? 'opacity-85 scale-100' : 'opacity-0 scale-105'
-              }`}
+            className={`absolute inset-0 bg-cover bg-center will-change-opacity transform-gpu ${
+              activeFragranceIndex === idx ? 'opacity-85 scale-100' : 'opacity-0 scale-105'
+            }`}
             style={{
               backgroundImage: `url(${fragrance.bgImage})`,
               transition: 'opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 1.8s ease-out'
             }}
           >
-            {/* Luxury dark vignette overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/60" />
             <div className="absolute inset-0 bg-radial-at-c from-transparent via-black/25 to-black/85" />
           </div>
@@ -332,39 +326,39 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
       {/* SECTION 01 — HERO TYPOGRAPHY & CALL TO ACTION */}
       <div
         ref={heroTextRef}
-        className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-end items-center text-center px-4 sm:px-6 pb-6 sm:pb-12 max-w-4xl mx-auto"
+        className="absolute inset-x-0 bottom-0 z-20 pointer-events-none flex flex-col justify-end items-center text-center px-4 sm:px-6 pb-6 sm:pb-12 max-w-4xl mx-auto"
       >
-        <div className="space-y-3 sm:space-y-4 max-w-xl pointer-events-auto">
+        <div className="space-y-2.5 sm:space-y-4 max-w-xl pointer-events-auto">
           {/* Main Headline */}
           <div className="space-y-1">
-            <p className="text-[10px] sm:text-xs uppercase tracking-[0.4em] text-[#f6d87c] font-medium flex items-center justify-center gap-2">
-              <span className="w-5 h-[1px] bg-[#f6d87c]/60" />
+            <p className="text-[9px] sm:text-xs uppercase tracking-[0.4em] text-[#f6d87c] font-medium flex items-center justify-center gap-2">
+              <span className="w-4 sm:w-5 h-[1px] bg-[#f6d87c]/60" />
               {BRAND.fullName}
-              <span className="w-5 h-[1px] bg-[#f6d87c]/60" />
+              <span className="w-4 sm:w-5 h-[1px] bg-[#f6d87c]/60" />
             </p>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif text-white uppercase tracking-[0.12em] leading-tight drop-shadow-2xl">
+            <h1 className="text-xl sm:text-4xl md:text-5xl font-serif text-white uppercase tracking-[0.12em] leading-tight drop-shadow-2xl">
               A FRAGRANCE THAT <br />
               <span className="italic font-light text-[#f8f4e6]">LEAVES ITS MARK.</span>
             </h1>
           </div>
 
           {/* Subtext */}
-          <p className="text-[11px] sm:text-xs tracking-[0.2em] uppercase text-neutral-300 font-light max-w-xs sm:max-w-md mx-auto leading-relaxed">
+          <p className="text-[10px] sm:text-xs tracking-[0.18em] uppercase text-neutral-300 font-light max-w-xs sm:max-w-md mx-auto leading-relaxed">
             {BRAND.subTagline} — Handcrafted Extrait de Parfum.
           </p>
 
           {/* CTA Buttons */}
-          <div className="pt-1 flex items-center justify-center gap-3">
+          <div className="pt-1 flex items-center justify-center gap-2.5 sm:gap-3">
             <button
               onClick={() => scrollToFragrance(0)}
-              className="px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-[#f8f4e6] text-black text-[11px] sm:text-xs uppercase tracking-[0.2em] font-semibold hover:bg-[#d4af37] transition-all duration-300 shadow-xl shadow-black/80 flex items-center gap-2 group cursor-pointer"
+              className="px-5 py-2.5 sm:px-7 sm:py-3 rounded-full bg-[#f8f4e6] text-black text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold hover:bg-[#d4af37] transition-all duration-300 shadow-xl shadow-black/80 flex items-center gap-2 group cursor-pointer active:scale-98"
             >
               <span>EXPERIENCE SCENTS</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
             </button>
             <button
               onClick={onExploreCollection}
-              className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full border border-white/20 text-white text-[11px] sm:text-xs uppercase tracking-[0.2em] font-medium hover:border-[#f6d87c] hover:text-[#f6d87c] transition-all duration-300 backdrop-blur-sm cursor-pointer"
+              className="px-4 py-2.5 sm:px-6 sm:py-3 rounded-full border border-white/20 text-white text-[10px] sm:text-xs uppercase tracking-[0.2em] font-medium hover:border-[#f6d87c] hover:text-[#f6d87c] transition-all duration-300 backdrop-blur-sm cursor-pointer active:scale-98"
             >
               COLLECTION
             </button>
@@ -373,7 +367,7 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
           {/* Mouse Scroll Indicator */}
           <div
             onClick={() => scrollToFragrance(0)}
-            className="pt-2 flex flex-col items-center gap-1 text-white/50 cursor-pointer group"
+            className="pt-1 sm:pt-2 flex flex-col items-center gap-1 text-white/50 cursor-pointer group"
           >
             <div className="w-3.5 h-6 sm:w-4 sm:h-7 rounded-full border border-white/40 group-hover:border-[#f6d87c] flex items-start justify-center p-0.5 sm:p-1 transition-colors">
               <div className="w-1 h-1.5 rounded-full bg-[#f6d87c] animate-pulse" />
@@ -386,58 +380,58 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
       </div>
 
       {/* SECTION 02 — 6 SIGNATURE SCENTS NARRATIVE PANELS */}
+      {/* MOBILE-PERFECT POSITIONING: Anchored at bottom with clear height, never overflowing */}
       <div
         id="scents"
-        className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center md:items-center md:justify-end px-3 sm:px-8 md:px-16 lg:px-24 pb-4 sm:pb-8 md:pb-0"
+        className="absolute inset-x-0 bottom-0 top-auto z-20 pointer-events-none flex justify-center md:inset-0 md:items-center md:justify-end px-3 sm:px-6 md:px-16 lg:px-24 pb-3 sm:pb-6 md:pb-0"
       >
-        <div className="w-full md:w-1/2 lg:w-5/12 max-w-lg relative min-h-0 sm:min-h-[440px] flex items-center">
+        <div className="w-full md:w-1/2 lg:w-5/12 max-w-md lg:max-w-lg relative h-[42vh] max-h-[360px] sm:max-h-none sm:min-h-[460px] flex items-center">
           {FRAGRANCES.map((fragrance, idx) => (
             <div
               key={fragrance.id}
               ref={(el) => (fragrancePanelsRef.current[idx] = el)}
-              className={`absolute inset-0 flex flex-col justify-center space-y-2.5 sm:space-y-4 md:space-y-5 opacity-0 p-4 sm:p-6 md:p-0 rounded-2xl md:rounded-none bg-black/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border border-white/10 md:border-none shadow-2xl md:shadow-none max-h-[46vh] sm:max-h-none overflow-y-auto md:overflow-visible transition-all duration-200 ${activeFragranceIndex === idx ? 'pointer-events-auto' : 'pointer-events-none'
-                }`}
+              className={`absolute inset-0 flex flex-col justify-between p-3.5 sm:p-5 md:p-0 rounded-2xl md:rounded-none bg-black/85 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border border-white/10 md:border-none shadow-2xl md:shadow-none transition-all duration-200 ${
+                activeFragranceIndex === idx ? 'pointer-events-auto' : 'pointer-events-none'
+              }`}
             >
               {/* Scent Counter & Category Pill */}
-              <div className="flex items-center justify-between md:justify-start gap-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-[10px] sm:text-xs font-mono tracking-widest text-[#f6d87c]">
                     {fragrance.index} / 06
                   </span>
-                  <span className="w-5 sm:w-8 h-[1px] bg-white/20" />
-                  <span className="text-[9px] sm:text-[11px] uppercase tracking-[0.25em] text-white/85 font-medium truncate">
+                  <span className="w-4 sm:w-6 h-[1px] bg-white/20" />
+                  <span className="text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-white/85 font-medium truncate max-w-[140px] sm:max-w-none">
                     {fragrance.subheading}
                   </span>
                 </div>
 
                 <span
-                  className="md:hidden text-[9px] font-mono tracking-wider px-2 py-0.5 rounded-full border border-white/10"
+                  className="text-[9px] font-mono tracking-wider px-2 py-0.5 rounded-full border border-white/10"
                   style={{ color: fragrance.accentColor }}
                 >
                   {fragrance.volume}
                 </span>
               </div>
 
-              {/* Tagline */}
-              <p
-                className="text-[10px] sm:text-xs md:text-sm uppercase tracking-[0.25em] font-semibold"
-                style={{ color: fragrance.accentColor }}
-              >
-                {fragrance.tagline}
-              </p>
-
-              {/* Major Editorial Headline */}
-              <h2 className="text-lg sm:text-3xl lg:text-5xl font-bold tracking-[0.08em] text-white font-serif uppercase leading-tight drop-shadow-lg">
-                {fragrance.name}
-              </h2>
-
-              {/* Editorial Description */}
-              <p className="text-[11px] sm:text-xs md:text-sm text-neutral-300 font-light leading-relaxed tracking-wider line-clamp-2 md:line-clamp-none">
-                {fragrance.shortDesc}
-              </p>
+              {/* Title & Tagline */}
+              <div className="space-y-0.5 sm:space-y-1">
+                <p
+                  className="text-[9px] sm:text-xs uppercase tracking-[0.22em] font-semibold"
+                  style={{ color: fragrance.accentColor }}
+                >
+                  {fragrance.tagline}
+                </p>
+                <h2 className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-serif font-bold text-white uppercase tracking-[0.08em] leading-tight drop-shadow-md">
+                  {fragrance.name}
+                </h2>
+                <p className="text-[10px] sm:text-xs md:text-sm text-neutral-300 font-light leading-relaxed tracking-wide line-clamp-2 md:line-clamp-none">
+                  {fragrance.shortDesc}
+                </p>
+              </div>
 
               {/* Three Fragrance Notes */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-3 py-2 sm:py-3 border-y border-white/10">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-3 py-1.5 sm:py-2.5 border-y border-white/10">
                 {fragrance.notes.map((note, nIdx) => (
                   <div key={nIdx} className="space-y-0.5">
                     <p className="text-[8px] sm:text-[9px] uppercase tracking-wider text-neutral-400">
@@ -450,58 +444,41 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
                 ))}
               </div>
 
-              {/* Accords and CTA */}
-              <div className="flex items-center justify-between gap-3 pt-1">
-                <button
-                  onClick={() => onSelectFragrance(fragrance)}
-                  className="flex-1 md:flex-initial px-5 py-2.5 rounded-full text-black text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold transition-all duration-300 shadow-lg cursor-pointer flex items-center justify-center gap-2 group"
-                  style={{ backgroundColor: fragrance.accentColor }}
-                >
-                  <span>EXPLORE {fragrance.name}</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                </button>
+              {/* CTA Button */}
+              <button
+                onClick={() => onSelectFragrance(fragrance)}
+                className="w-full py-2.5 sm:py-3 px-4 rounded-full text-black text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold transition-all duration-300 shadow-lg cursor-pointer flex items-center justify-center gap-2 group active:scale-98"
+                style={{ backgroundColor: fragrance.accentColor }}
+              >
+                <span>EXPLORE {fragrance.name}</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+              </button>
 
-                <div className="hidden sm:flex items-center gap-2">
-                  {fragrance.accords.slice(0, 3).map((accord, aIdx) => (
-                    <span
-                      key={aIdx}
-                      className="text-[9px] sm:text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-300"
-                    >
-                      {accord}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mobile Frame Navigation Controls */}
-              <div className="flex sm:hidden items-center justify-between pt-2 border-t border-white/10 text-[10px] font-mono">
+              {/* Mobile Stepper Controls */}
+              <div className="flex sm:hidden items-center justify-between pt-1 border-t border-white/10 text-[9px] font-mono">
                 <button
                   onClick={() => {
-                    if (idx === 0) {
-                      scrollToHero();
-                    } else {
-                      scrollToFragrance(idx - 1);
-                    }
+                    if (idx === 0) scrollToHero();
+                    else scrollToFragrance(idx - 1);
                   }}
-                  className="px-2.5 py-1 rounded-full border border-white/20 text-white/80 active:bg-white/10 flex items-center gap-1 cursor-pointer"
+                  className="px-2 py-0.5 rounded-full border border-white/20 text-white/80 active:bg-white/10 flex items-center gap-1 cursor-pointer"
                 >
                   <ChevronLeft className="w-3 h-3" />
                   <span>{idx === 0 ? "Hero" : "Prev"}</span>
                 </button>
 
-                <span className="text-[#f6d87c] text-[10px] tracking-wider">
-                  {idx + 1} of 6
+                <span className="text-[#f6d87c] tracking-widest font-semibold">
+                  {idx + 1} OF 6
                 </span>
 
                 <button
                   onClick={() => {
-                    if (idx < 5) {
-                      scrollToFragrance(idx + 1);
-                    }
+                    if (idx < 5) scrollToFragrance(idx + 1);
                   }}
                   disabled={idx === 5}
-                  className={`px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1 cursor-pointer ${idx === 5 ? 'opacity-30 cursor-not-allowed' : 'text-white/80 active:bg-white/10'
-                    }`}
+                  className={`px-2 py-0.5 rounded-full border border-white/20 flex items-center gap-1 cursor-pointer ${
+                    idx === 5 ? 'opacity-30 cursor-not-allowed' : 'text-white/80 active:bg-white/10'
+                  }`}
                 >
                   <span>Next</span>
                   <ChevronRight className="w-3 h-3" />
@@ -513,16 +490,17 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
       </div>
 
       {/* EXPERIENCE PROGRESS INDICATOR (Interactive 6 Scent Dots) */}
-      <div className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center space-y-2.5 sm:space-y-3">
+      <div className="absolute right-2 sm:right-3 md:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center space-y-2 sm:space-y-2.5 md:space-y-3">
         {FRAGRANCES.map((f, i) => (
           <button
             key={f.id}
             onClick={() => scrollToFragrance(i)}
             title={`${f.index} ${f.name}`}
-            className={`transition-all duration-300 rounded-full cursor-pointer ${activeFragranceIndex === i
-                ? 'w-1.5 sm:w-2 h-7 sm:h-9 bg-[#f6d87c] shadow-lg shadow-[#f6d87c]/40'
+            className={`transition-all duration-300 rounded-full cursor-pointer ${
+              activeFragranceIndex === i
+                ? 'w-1 sm:w-1.5 md:w-2 h-5 sm:h-7 md:h-9 bg-[#f6d87c] shadow-lg shadow-[#f6d87c]/40'
                 : 'w-1 sm:w-1.5 h-1 sm:h-1.5 bg-white/25 hover:bg-white/70 hover:scale-125'
-              }`}
+            }`}
           />
         ))}
       </div>

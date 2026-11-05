@@ -47,14 +47,14 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
         </div>
 
         {/* 6 Fragrances Balanced Grid (3 columns on desktop / 2 columns on mobile with uniform Y gap) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 gap-y-6 sm:gap-y-8 mb-10 sm:mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-6 lg:gap-8 gap-y-4 sm:gap-y-8 mb-8 sm:mb-16">
           {FRAGRANCES.map((scent, idx) => {
             const isSelected = activeTab === idx;
             return (
               <div
                 key={scent.id}
                 onClick={() => setActiveTab(idx)}
-                className={`group cursor-pointer p-4 sm:p-6 rounded-2xl transition-all duration-500 flex flex-col items-center text-center relative border ${
+                className={`group cursor-pointer p-3 sm:p-6 rounded-xl sm:rounded-2xl transition-all duration-500 flex flex-col items-center text-center relative border ${
                   isSelected
                     ? 'bg-white/[0.05] border-[#d4af37]/60 shadow-2xl shadow-black/90 ring-1 ring-[#d4af37]/30'
                     : 'bg-white/[0.015] border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
@@ -63,7 +63,7 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
                 {/* Active halo */}
                 {isSelected && (
                   <div 
-                    className="absolute inset-0 rounded-2xl blur-xl opacity-25 transition-all duration-500 pointer-events-none"
+                    className="absolute inset-0 rounded-xl sm:rounded-2xl blur-xl opacity-25 transition-all duration-500 pointer-events-none"
                     style={{ backgroundColor: scent.accentColor }}
                   />
                 )}
@@ -74,7 +74,7 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
                 </div>
 
                 {/* Bottle Thumbnail Image */}
-                <div className="relative w-full aspect-[3/4] max-h-40 sm:max-h-56 mb-3 sm:mb-5 flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/[0.02] to-transparent">
+                <div className="relative w-full aspect-[3/4] max-h-36 sm:max-h-56 mb-2.5 sm:mb-5 flex items-center justify-center overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-b from-white/[0.02] to-transparent">
                   <img
                     src={scent.bottleImage}
                     alt={scent.name}
@@ -84,20 +84,20 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
                   />
                   {/* Subtle pedestal glow */}
                   <div 
-                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-20 sm:w-28 h-3 sm:h-4 rounded-full blur-md opacity-40"
+                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-16 sm:w-28 h-2.5 sm:h-4 rounded-full blur-md opacity-40"
                     style={{ backgroundColor: scent.accentColor }}
                   />
                 </div>
 
                 {/* Fragrance Title & Notes (No truncation, natural wrapping) */}
-                <div className="space-y-1 relative z-10 w-full">
-                  <h3 className="text-xs sm:text-sm lg:text-base font-serif tracking-[0.14em] font-semibold text-white group-hover:text-[#d4af37] transition-colors leading-snug min-h-[2.2rem] sm:min-h-[2.6rem] flex items-center justify-center px-1">
+                <div className="space-y-0.5 sm:space-y-1 relative z-10 w-full">
+                  <h3 className="text-xs sm:text-sm lg:text-base font-serif tracking-[0.14em] font-semibold text-white group-hover:text-[#d4af37] transition-colors leading-snug min-h-[2rem] sm:min-h-[2.6rem] flex items-center justify-center px-0.5">
                     {scent.name}
                   </h3>
-                  <p className="text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-neutral-400 font-light truncate">
+                  <p className="text-[8px] sm:text-[11px] uppercase tracking-[0.18em] text-neutral-400 font-light truncate">
                     {scent.subheading.split('&')[0].trim()}
                   </p>
-                  <p className="text-[10px] font-mono text-white/90 pt-0.5 sm:pt-1">
+                  <p className="text-[9px] sm:text-[10px] font-mono text-white/90 pt-0.5 sm:pt-1">
                     {scent.price}
                   </p>
                 </div>
@@ -105,7 +105,7 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
                 {/* Active indicator bar */}
                 <div 
                   className={`mt-2 sm:mt-4 h-[2px] transition-all duration-500 rounded-full ${
-                    isSelected ? 'w-10 sm:w-14' : 'w-0'
+                    isSelected ? 'w-8 sm:w-14' : 'w-0'
                   }`}
                   style={{ backgroundColor: scent.accentColor }}
                 />
@@ -115,7 +115,7 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
         </div>
 
         {/* Detailed Selected Fragrance Ribbon (Responsive Mobile Card) */}
-        <div className="p-5 sm:p-10 rounded-2xl sm:rounded-3xl bg-neutral-900/70 border border-white/10 backdrop-blur-xl grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center shadow-2xl">
+        <div className="p-4 sm:p-10 rounded-2xl sm:rounded-3xl bg-neutral-900/70 border border-white/10 backdrop-blur-xl grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-center shadow-2xl">
           <div className="lg:col-span-4 space-y-2">
             <span className="text-[10px] sm:text-xs uppercase tracking-[0.3em] font-medium" style={{ color: current.accentColor }}>
               {current.tagline}
