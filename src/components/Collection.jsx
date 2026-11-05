@@ -24,7 +24,7 @@ export default function Collection({ onAddToCart, onViewDetails }) {
               THE COMPLETE COLLECTION
             </h2>
             <p className="text-xs sm:text-sm text-neutral-400 font-light tracking-wide max-w-lg">
-              Four timeless signature extraits, handcrafted in limited small-batch editions.
+              Six timeless signature extraits, handcrafted in limited small-batch editions.
             </p>
           </div>
 
@@ -40,11 +40,10 @@ export default function Collection({ onAddToCart, onViewDetails }) {
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
-                className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                  filter === tab.id
+                className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer ${filter === tab.id
                     ? 'bg-[#d4af37] text-black font-semibold'
                     : 'bg-white/5 text-neutral-300 hover:bg-white/10 border border-white/5'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -52,8 +51,8 @@ export default function Collection({ onAddToCart, onViewDetails }) {
           </div>
         </div>
 
-        {/* 4 Product Cards Grid (2 columns on mobile, 4 on desktop) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
+        {/* 6 Product Cards Grid (3 columns on desktop / 2 on mobile) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {filteredFragrances.map((fragrance) => (
             <ProductCard
               key={fragrance.id}

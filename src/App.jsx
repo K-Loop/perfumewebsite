@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import FragranceExperience from './components/FragranceExperience';
 import FragranceSection from './components/FragranceSection';
+import DiscoverySet from './components/DiscoverySet';
 import OurStory from './components/OurStory';
 import Ingredients from './components/Ingredients';
 import ParallaxSection from './components/ParallaxSection';
@@ -58,7 +59,7 @@ export default function App() {
   const totalCartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-[#050607] text-[#e0e0e0] font-sans selection:bg-[#d4af37] selection:text-black">
+    <div className="min-h-screen bg-[#06030c] text-[#e0e0e0] font-sans selection:bg-[#f6d87c] selection:text-black">
       {/* 05. Minimal Luxury Navigation */}
       <Navbar 
         cartCount={totalCartCount} 
@@ -81,28 +82,33 @@ export default function App() {
           onSelectFragrance={handleOpenDetails}
         />
 
-        {/* 07. OUR STORY / ABOUT */}
+        {/* 07. DISCOVERY SET & SAMPLE KITS (From Image 5) */}
+        <DiscoverySet
+          onAddToCart={handleAddToCart}
+        />
+
+        {/* 08. OUR STORY / HERITAGE */}
         <OurStory
           onOpenModal={() => handleOpenDetails(FRAGRANCES[0])}
         />
 
-        {/* 08. FEATURES / INGREDIENTS */}
+        {/* 09. FEATURES / CRAFTSMANSHIP */}
         <Ingredients />
 
-        {/* 09. PARALLAX QUOTE SECTION */}
+        {/* 10. PARALLAX QUOTE SECTION */}
         <ParallaxSection />
 
-        {/* 10. SHOP / THE COLLECTION */}
+        {/* 11. COMPLETE COLLECTION BOUTIQUE */}
         <Collection
           onAddToCart={handleAddToCart}
           onViewDetails={handleOpenDetails}
         />
 
-        {/* 11. TESTIMONIALS */}
+        {/* 12. TESTIMONIALS */}
         <Testimonials />
       </main>
 
-      {/* 12. FOOTER */}
+      {/* 13. FOOTER */}
       <Footer />
 
       {/* Interactive Cart Drawer */}

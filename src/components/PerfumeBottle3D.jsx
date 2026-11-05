@@ -4,8 +4,9 @@ import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 
 export default function PerfumeBottle3D({ 
-  liquidColor = "#0a6c3f",
-  liquidEmissive = "#03331c",
+  liquidColor = "#311868",
+  liquidEmissive = "#140733",
+  fragranceName = "OCEAN BREEZE",
   scrollProgress = 0,
   scrollVelocity = 0,
   mousePos = { x: 0, y: 0 }
@@ -13,8 +14,9 @@ export default function PerfumeBottle3D({
   const bottleGroup = useRef();
   const liquidMaterialRef = useRef();
   const liquidMeshRef = useRef();
+  const glassMaterialRef = useRef();
 
-  // Crisp FIORST label texture with gold hairline frame
+  // Signature LX LUXARA gold plaque label texture
   const labelTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
@@ -23,40 +25,62 @@ export default function PerfumeBottle3D({
 
     ctx.clearRect(0, 0, 1024, 1024);
 
-    // Subtle dark luxury backing badge on the bottle
-    ctx.fillStyle = 'rgba(6, 14, 10, 0.75)';
-    ctx.roundRect(220, 310, 584, 400, 16);
+    // Deep royal purple-black backing plate
+    ctx.fillStyle = 'rgba(20, 8, 38, 0.92)';
+    ctx.roundRect(230, 270, 564, 480, 20);
     ctx.fill();
 
-    // Polished gold border
-    ctx.strokeStyle = 'rgba(218, 185, 95, 0.95)';
+    // Outer polished gold border
+    ctx.strokeStyle = 'rgba(234, 196, 92, 0.95)';
     ctx.lineWidth = 4;
-    ctx.strokeRect(230, 320, 564, 380);
+    ctx.strokeRect(240, 280, 544, 460);
 
-    // Inner gold hairline
-    ctx.strokeStyle = 'rgba(218, 185, 95, 0.45)';
+    // Inner gold hairline frame
+    ctx.strokeStyle = 'rgba(234, 196, 92, 0.45)';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(244, 334, 536, 352);
+    ctx.strokeRect(252, 292, 520, 436);
 
-    // "FIORST" brandmark
-    ctx.fillStyle = '#faf6eb';
-    ctx.font = '700 86px "Cinzel", "Times New Roman", serif';
+    // LX Monogram
+    ctx.fillStyle = '#f6d87c';
+    ctx.font = '700 88px "Cinzel", "Times New Roman", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.letterSpacing = '18px';
-    ctx.fillText('FIORST', 512, 460);
-
-    // Subtitle
-    ctx.fillStyle = '#d4af37';
-    ctx.font = '500 26px "Plus Jakarta Sans", sans-serif';
     ctx.letterSpacing = '12px';
-    ctx.fillText('EAU DE PARFUM', 512, 535);
+    ctx.fillText('LX', 512, 385);
 
-    // Volume & Origin
-    ctx.fillStyle = 'rgba(240, 235, 220, 0.8)';
-    ctx.font = '400 18px "Plus Jakarta Sans", sans-serif';
-    ctx.letterSpacing = '7px';
-    ctx.fillText('100 ML — PARIS', 512, 600);
+    // Star sparkle next to LX
+    ctx.font = '32px sans-serif';
+    ctx.fillText('✦', 580, 355);
+
+    // Brand Name: LUXARA
+    ctx.fillStyle = '#f8f4e6';
+    ctx.font = '700 46px "Cinzel", "Times New Roman", serif';
+    ctx.letterSpacing = '16px';
+    ctx.fillText('LUXARA', 512, 465);
+
+    // Inset golden banner for Fragrance Name
+    ctx.fillStyle = 'rgba(234, 196, 92, 0.22)';
+    ctx.roundRect(290, 520, 444, 75, 12);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(234, 196, 92, 0.8)';
+    ctx.lineWidth = 1.8;
+    ctx.strokeRect(290, 520, 444, 75);
+
+    ctx.fillStyle = '#fff4d6';
+    ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
+    ctx.letterSpacing = '5px';
+    ctx.fillText('PARFUM COLLECTION', 512, 558);
+
+    // Concentration & Volume
+    ctx.fillStyle = '#e8d28a';
+    ctx.font = '500 19px "Plus Jakarta Sans", sans-serif';
+    ctx.letterSpacing = '6px';
+    ctx.fillText('EXTRAIT DE PARFUM', 512, 640);
+
+    ctx.fillStyle = 'rgba(240, 230, 210, 0.75)';
+    ctx.font = '400 17px "Plus Jakarta Sans", sans-serif';
+    ctx.letterSpacing = '5px';
+    ctx.fillText('50 ML | 1.69 FL.OZ', 512, 680);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.anisotropy = 8;
@@ -64,38 +88,46 @@ export default function PerfumeBottle3D({
     return texture;
   }, []);
 
-  // Frame animation: smooth idle breathing and gentle mouse tilt
+  // Frame animation: frame-rate-independent 60/120/144Hz butter-smooth damping
   useFrame((state, delta) => {
     if (!bottleGroup.current) return;
     
+    // Clamp delta to prevent huge jumps on tab switch or momentary hitch
+    const safeDelta = Math.min(delta, 0.05);
     const time = state.clock.getElapsedTime();
     
     // Smooth idle float
-    const idleY = Math.sin(time * 0.9) * 0.025;
-    const idleRotY = Math.sin(time * 0.6) * 0.035;
+    const idleY = Math.sin(time * 0.9) * 0.02;
+    const idleRotY = Math.sin(time * 0.6) * 0.03;
     const idleRotX = Math.cos(time * 0.7) * 0.015;
 
-    // Mouse parallax
-    const targetRotX = (mousePos.y * 0.16) + idleRotX;
-    const targetRotY = (mousePos.x * 0.20) + idleRotY;
+    // Gentle mouse parallax
+    const targetRotX = (mousePos.y * 0.14) + idleRotX;
+    const targetRotY = (mousePos.x * 0.18) + idleRotY;
 
-    bottleGroup.current.rotation.x = THREE.MathUtils.lerp(bottleGroup.current.rotation.x, targetRotX, delta * 2.5);
-    bottleGroup.current.rotation.y = THREE.MathUtils.lerp(bottleGroup.current.rotation.y, targetRotY, delta * 2.5);
-    bottleGroup.current.position.y = THREE.MathUtils.lerp(bottleGroup.current.position.y, idleY, delta * 2.5);
+    // MathUtils.damp provides true refresh-rate-independent smooth interpolation
+    bottleGroup.current.rotation.x = THREE.MathUtils.damp(bottleGroup.current.rotation.x, targetRotX, 4.5, safeDelta);
+    bottleGroup.current.rotation.y = THREE.MathUtils.damp(bottleGroup.current.rotation.y, targetRotY, 4.5, safeDelta);
+    bottleGroup.current.position.y = THREE.MathUtils.damp(bottleGroup.current.position.y, idleY, 4.5, safeDelta);
 
-    // Subtle liquid level breathing with scroll
+    // Fluid level reaction with scroll
     if (liquidMeshRef.current) {
-      const targetScaleY = THREE.MathUtils.clamp(1.0 - (scrollProgress * 0.12), 0.88, 1.0);
-      liquidMeshRef.current.scale.y = THREE.MathUtils.lerp(liquidMeshRef.current.scale.y, targetScaleY, delta * 2.0);
+      const targetScaleY = THREE.MathUtils.clamp(1.0 - (scrollProgress * 0.1), 0.9, 1.0);
+      liquidMeshRef.current.scale.y = THREE.MathUtils.damp(liquidMeshRef.current.scale.y, targetScaleY, 3.5, safeDelta);
     }
 
-    // Dynamic liquid color transition
+    // Dynamic color transition matching each Luxara fragrance
     if (liquidMaterialRef.current) {
       const targetColor = new THREE.Color(liquidColor);
-      liquidMaterialRef.current.color.lerp(targetColor, delta * 3.5);
+      liquidMaterialRef.current.color.lerp(targetColor, Math.min(1, safeDelta * 4.0));
       
       const targetEmissive = new THREE.Color(liquidEmissive);
-      liquidMaterialRef.current.emissive.lerp(targetEmissive, delta * 3.5);
+      liquidMaterialRef.current.emissive.lerp(targetEmissive, Math.min(1, safeDelta * 4.0));
+    }
+
+    if (glassMaterialRef.current) {
+      const targetColor = new THREE.Color(liquidColor).multiplyScalar(0.7);
+      glassMaterialRef.current.color.lerp(targetColor, Math.min(1, safeDelta * 4.0));
     }
   });
 
@@ -104,12 +136,12 @@ export default function PerfumeBottle3D({
       <group position={[0, -0.15, 0]}>
         
         {/* ======================================================== */}
-        {/* 1. VISIBLE FOREST-GREEN LIQUID (Rendered FIRST inside glass) */}
+        {/* 1. VISIBLE ROYAL AMETHYST/VIOLET PERFUME LIQUID          */}
         {/* ======================================================== */}
-        <group position={[0, -0.10, 0]}>
+        <group position={[0, -0.08, 0]}>
           <RoundedBox 
             ref={liquidMeshRef}
-            args={[1.74, 1.95, 0.78]} 
+            args={[1.72, 1.95, 0.78]} 
             radius={0.08} 
             smoothness={4} 
             position={[0, 0, 0]}
@@ -128,12 +160,12 @@ export default function PerfumeBottle3D({
             />
           </RoundedBox>
 
-          {/* Meniscus surface highlight on top of green liquid */}
+          {/* Meniscus surface highlight on top of liquid */}
           <mesh position={[0, 0.98, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2}>
-            <planeGeometry args={[1.70, 0.74]} />
+            <planeGeometry args={[1.68, 0.74]} />
             <meshStandardMaterial
-              color="#10b981"
-              emissive="#059669"
+              color="#c084fc"
+              emissive="#7e22ce"
               emissiveIntensity={0.5}
               roughness={0.05}
               metalness={0.2}
@@ -142,29 +174,16 @@ export default function PerfumeBottle3D({
         </group>
 
         {/* ======================================================== */}
-        {/* 2. TRANSLUCENT INTERNAL DIP TUBE                        */}
+        {/* 2. SOLID CRYSTAL BASE (Heavy luxury paraison at bottom)  */}
         {/* ======================================================== */}
-        <mesh position={[0, -0.05, 0]} renderOrder={3}>
-          <cylinderGeometry args={[0.018, 0.018, 2.2, 16]} />
-          <meshStandardMaterial
-            color="#ffffff"
-            transparent={true}
-            opacity={0.55}
-            roughness={0.1}
-          />
-        </mesh>
-
-        {/* ======================================================== */}
-        {/* 3. SOLID HEAVY CRYSTAL BASE (Paraison at bottom)        */}
-        {/* ======================================================== */}
-        <mesh position={[0, -1.18, 0]} renderOrder={4}>
+        <mesh position={[0, -1.16, 0]} renderOrder={3}>
           <boxGeometry args={[1.98, 0.26, 0.98]} />
           <meshPhysicalMaterial
             color="#ffffff"
             transparent={true}
-            opacity={0.35}
+            opacity={0.4}
             roughness={0.0}
-            reflectivity={0.9}
+            reflectivity={0.95}
             clearcoat={1.0}
             clearcoatRoughness={0.0}
             depthWrite={false}
@@ -173,37 +192,37 @@ export default function PerfumeBottle3D({
         </mesh>
 
         {/* ======================================================== */}
-        {/* 4. CRYSTAL-CLEAR OUTER GLASS FLASK (DepthWrite: FALSE)  */}
-        {/* Ensures the green liquid inside is 100% visible!         */}
+        {/* 3. ROYAL PURPLE GLASS FLASK (With specular refraction)    */}
         {/* ======================================================== */}
         <RoundedBox 
-          args={[2.0, 2.5, 1.02]} 
+          args={[2.0, 2.45, 1.02]} 
           radius={0.16} 
           smoothness={6} 
           position={[0, 0, 0]}
-          renderOrder={5}
+          renderOrder={4}
         >
           <meshPhysicalMaterial
-            color="#ffffff"
+            ref={glassMaterialRef}
+            color="#2a0d45"
             transparent={true}
-            opacity={0.22}
-            roughness={0.0}
-            metalness={0.05}
+            opacity={0.32}
+            roughness={0.01}
+            metalness={0.08}
             reflectivity={1.0}
             clearcoat={1.0}
-            clearcoatRoughness={0.0}
+            clearcoatRoughness={0.02}
             depthWrite={false}
-            envMapIntensity={3.0}
+            envMapIntensity={3.2}
           />
         </RoundedBox>
 
-        {/* Subtle glass edge highlight accent */}
+        {/* Outer glass highlight rim */}
         <RoundedBox 
-          args={[2.02, 2.52, 1.04]} 
+          args={[2.02, 2.47, 1.04]} 
           radius={0.17} 
           smoothness={5} 
           position={[0, 0, 0]}
-          renderOrder={6}
+          renderOrder={5}
         >
           <meshStandardMaterial
             color="#ffffff"
@@ -215,9 +234,9 @@ export default function PerfumeBottle3D({
         </RoundedBox>
 
         {/* ======================================================== */}
-        {/* 5. FIORST FOIL BRANDING LABEL (On front face of glass)   */}
+        {/* 4. LX LUXARA GOLD PLAQUE LABEL (On front face)           */}
         {/* ======================================================== */}
-        <mesh position={[0, -0.02, 0.525]} renderOrder={7}>
+        <mesh position={[0, 0.02, 0.525]} renderOrder={6}>
           <planeGeometry args={[1.4, 1.4]} />
           <meshBasicMaterial
             map={labelTexture}
@@ -229,72 +248,75 @@ export default function PerfumeBottle3D({
         </mesh>
 
         {/* ======================================================== */}
-        {/* 6. GLASS SHOULDER & ATOMIZER NECK                       */}
+        {/* 5. POLISHED GOLD ATOMIZER COLLAR                        */}
         {/* ======================================================== */}
-        <mesh position={[0, 1.30, 0]} renderOrder={8}>
-          <cylinderGeometry args={[0.42, 0.46, 0.14, 48]} />
-          <meshPhysicalMaterial
-            color="#ffffff"
-            transparent={true}
-            opacity={0.35}
-            roughness={0.0}
-            clearcoat={1.0}
-            depthWrite={false}
-            envMapIntensity={2.5}
-          />
-        </mesh>
-
-        {/* Polished Gold Atomizer Collar */}
-        <mesh position={[0, 1.44, 0]} renderOrder={9}>
-          <cylinderGeometry args={[0.41, 0.43, 0.22, 64]} />
+        {/* Lower gold collar */}
+        <mesh position={[0, 1.28, 0]} renderOrder={7}>
+          <cylinderGeometry args={[0.42, 0.44, 0.16, 64]} />
           <meshStandardMaterial
             color="#e5c158"
             metalness={0.96}
             roughness={0.14}
-            envMapIntensity={3.0}
+            envMapIntensity={3.2}
           />
         </mesh>
 
-        {/* Inner gold spray nozzle rim */}
-        <mesh position={[0, 1.56, 0]} renderOrder={9}>
-          <cylinderGeometry args={[0.26, 0.28, 0.16, 48]} />
+        {/* Upper stepped gold collar ring */}
+        <mesh position={[0, 1.40, 0]} renderOrder={8}>
+          <cylinderGeometry args={[0.36, 0.38, 0.12, 64]} />
           <meshStandardMaterial
             color="#f3d872"
             metalness={0.98}
             roughness={0.12}
+            envMapIntensity={3.5}
           />
         </mesh>
 
         {/* ======================================================== */}
-        {/* 7. LUXURY OBSIDIAN BLACK CAP (Seated on collar)         */}
+        {/* 6. SIGNATURE LUXARA SQUARE CRYSTAL CLEAR CAP             */}
+        {/* Clear beveled crystal cube with inner black core         */}
         {/* ======================================================== */}
-        <mesh position={[0, 2.06, 0]} renderOrder={10}>
-          <cylinderGeometry args={[0.48, 0.48, 1.02, 64]} />
+        {/* Inner black cylinder core */}
+        <mesh position={[0, 1.94, 0]} renderOrder={9}>
+          <cylinderGeometry args={[0.34, 0.34, 0.92, 48]} />
           <meshStandardMaterial
-            color="#08080a"
-            metalness={0.45}
-            roughness={0.12}
+            color="#09090b"
+            metalness={0.4}
+            roughness={0.1}
             envMapIntensity={2.0}
           />
         </mesh>
 
-        {/* Gold accent band at bottom of cap */}
-        <mesh position={[0, 1.56, 0]} renderOrder={11}>
-          <cylinderGeometry args={[0.485, 0.485, 0.05, 64]} />
+        {/* Outer transparent square crystal cap */}
+        <RoundedBox 
+          args={[0.88, 0.98, 0.88]} 
+          radius={0.12} 
+          smoothness={5} 
+          position={[0, 1.94, 0]}
+          renderOrder={10}
+        >
+          <meshPhysicalMaterial
+            color="#ffffff"
+            transmission={0.95}
+            transparent={true}
+            opacity={0.3}
+            roughness={0.01}
+            ior={1.52}
+            thickness={1.5}
+            clearcoat={1.0}
+            clearcoatRoughness={0.01}
+            envMapIntensity={3.5}
+            depthWrite={false}
+          />
+        </RoundedBox>
+
+        {/* Gold trim band at base of cap */}
+        <mesh position={[0, 1.48, 0]} renderOrder={11}>
+          <boxGeometry args={[0.90, 0.05, 0.90]} />
           <meshStandardMaterial
             color="#e5c158"
             metalness={0.96}
             roughness={0.14}
-          />
-        </mesh>
-
-        {/* Top gold medallion inset on top of cap */}
-        <mesh position={[0, 2.572, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={11}>
-          <circleGeometry args={[0.38, 48]} />
-          <meshStandardMaterial
-            color="#e5c158"
-            metalness={0.95}
-            roughness={0.18}
           />
         </mesh>
       </group>

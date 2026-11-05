@@ -53,7 +53,7 @@ export default function FragranceModal({ fragrance, isOpen, onClose, onAddToCart
           </div>
 
           <div className="relative z-10 text-center">
-            <span className="text-xs font-mono text-neutral-300">100 ML Extrait de Parfum</span>
+            <span className="text-xs font-mono text-neutral-300">{fragrance.volume || "50 ML | 1.69 FL.OZ"} Extrait de Parfum</span>
           </div>
         </div>
 

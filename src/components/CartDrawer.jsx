@@ -72,7 +72,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
                       {item.subheading}
                     </span>
                     <h3 className="text-sm font-serif text-white font-medium">
-                      FIORST {item.name}
+                      {item.name.includes("Discovery") ? item.name : `LUXARA ${item.name}`}
                     </h3>
                     <p className="text-xs text-neutral-400 font-mono">
                       {item.price}
@@ -127,8 +127,8 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
               </div>
 
               <button
-                onClick={() => alert(`Thank you for choosing FIORST! Your simulated order for ₹${totalAmount.toLocaleString('en-IN')} has been placed successfully.`)}
-                className="w-full py-3.5 px-6 rounded-full bg-[#d4af37] text-black text-xs uppercase tracking-[0.2em] font-bold hover:bg-white transition-all duration-300 shadow-xl cursor-pointer flex items-center justify-center gap-2 group"
+                onClick={() => alert(`Thank you for choosing LUXARA! Your order for ₹${totalAmount.toLocaleString('en-IN')} has been placed successfully.`)}
+                className="w-full py-3.5 px-6 rounded-full bg-[#f6d87c] text-black text-xs uppercase tracking-[0.2em] font-bold hover:bg-white transition-all duration-300 shadow-xl cursor-pointer flex items-center justify-center gap-2 group"
               >
                 <span>PROCEED TO CHECKOUT</span>
                 <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />

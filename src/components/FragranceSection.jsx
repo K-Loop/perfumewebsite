@@ -46,15 +46,15 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
           </div>
         </div>
 
-        {/* 4 Bottles Showcase Grid (Touch optimized on mobile) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8 mb-8 sm:mb-16">
+        {/* 6 Fragrances Balanced Grid (3 columns on desktop / 2 columns on mobile with uniform Y gap) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 gap-y-6 sm:gap-y-8 mb-10 sm:mb-16">
           {FRAGRANCES.map((scent, idx) => {
             const isSelected = activeTab === idx;
             return (
               <div
                 key={scent.id}
                 onClick={() => setActiveTab(idx)}
-                className={`group cursor-pointer p-3 sm:p-6 rounded-2xl transition-all duration-500 flex flex-col items-center text-center relative border ${
+                className={`group cursor-pointer p-4 sm:p-6 rounded-2xl transition-all duration-500 flex flex-col items-center text-center relative border ${
                   isSelected
                     ? 'bg-white/[0.05] border-[#d4af37]/60 shadow-2xl shadow-black/90 ring-1 ring-[#d4af37]/30'
                     : 'bg-white/[0.015] border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
@@ -74,7 +74,7 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
                 </div>
 
                 {/* Bottle Thumbnail Image */}
-                <div className="relative w-full aspect-[3/4] max-h-40 sm:max-h-56 mb-3 sm:mb-6 flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/[0.02] to-transparent">
+                <div className="relative w-full aspect-[3/4] max-h-40 sm:max-h-56 mb-3 sm:mb-5 flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/[0.02] to-transparent">
                   <img
                     src={scent.bottleImage}
                     alt={scent.name}
@@ -89,9 +89,9 @@ export default function FragranceSection({ onAddToCart, onSelectFragrance }) {
                   />
                 </div>
 
-                {/* Fragrance Title & Notes */}
-                <div className="space-y-0.5 sm:space-y-1 relative z-10 w-full">
-                  <h3 className="text-xs sm:text-base font-serif tracking-[0.18em] font-semibold text-white group-hover:text-[#d4af37] transition-colors truncate">
+                {/* Fragrance Title & Notes (No truncation, natural wrapping) */}
+                <div className="space-y-1 relative z-10 w-full">
+                  <h3 className="text-xs sm:text-sm lg:text-base font-serif tracking-[0.14em] font-semibold text-white group-hover:text-[#d4af37] transition-colors leading-snug min-h-[2.2rem] sm:min-h-[2.6rem] flex items-center justify-center px-1">
                     {scent.name}
                   </h3>
                   <p className="text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-neutral-400 font-light truncate">

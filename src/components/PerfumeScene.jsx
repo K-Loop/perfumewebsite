@@ -6,18 +6,19 @@ import PerfumeBottle3D from './PerfumeBottle3D';
 function ResponsiveCamera() {
   const { viewport } = useThree();
   const isPortrait = viewport.aspect < 1.0;
-  // On portrait/phone screens, pull camera to z=9.8 so bottle never clips horizontally
-  const cameraZ = isPortrait ? 9.8 : 8.6;
+  // On portrait/phone screens, pull camera to z=10.2 so bottle never clips horizontally or vertically
+  const cameraZ = isPortrait ? 10.2 : 8.6;
   return <PerspectiveCamera makeDefault position={[0, 0, cameraZ]} fov={33} />;
 }
 
 export default function PerfumeScene({
-  liquidColor = "#05472A",
-  liquidEmissive = "#022B18",
+  liquidColor = "#311868",
+  liquidEmissive = "#140733",
+  fragranceName = "OCEAN BREEZE",
   bottlePosition = [0, 0.22, 0],
   bottleRotation = [0, 0, 0],
   bottleScale = 0.75,
-  particleColor = "#22c55e",
+  particleColor = "#c084fc",
   scrollProgress = 0,
   scrollVelocity = 0
 }) {
@@ -44,80 +45,77 @@ export default function PerfumeScene({
           stencil: false,
           depth: true
         }}
-        dpr={[1, 2]}
+        dpr={[1, 1.75]}
         className="pointer-events-auto"
       >
         <ResponsiveCamera />
 
-        {/* Realistic Forest Environment Reflection Map */}
-        <Suspense fallback={null}>
-          <Environment files="/images/forest/bg-forest.jpg" />
-        </Suspense>
+        {/* Ambient & Studio Luxury Lighting */}
+        <ambientLight intensity={1.3} color="#f3e8ff" />
 
-        {/* Ambient & Studio Forest Lighting */}
-        <ambientLight intensity={1.2} color="#e6f5eb" />
-        
-        {/* Sunlight Filtering Through Forest Trees (Key Light) */}
-        <directionalLight 
-          position={[4.5, 7.5, 4.0]} 
-          intensity={3.2} 
-          color="#fffbeb" 
-          castShadow 
-        />
-        
-        {/* Warm Golden Dawn Rim Light (Left) */}
-        <directionalLight 
-          position={[-5.5, 4.0, 2.5]} 
-          intensity={2.2} 
-          color="#fef08a" 
+        {/* Key Light (Dramatic high-angle soft white) */}
+        <directionalLight
+          position={[4.5, 7.5, 4.0]}
+          intensity={3.4}
+          color="#ffffff"
+          castShadow
         />
 
-        {/* Cool Forest Mist Rim Light (Edge Separation) */}
-        <directionalLight 
-          position={[0, 5.0, -4.5]} 
-          intensity={2.6} 
-          color="#a7f3d0" 
+        {/* Warm Golden Rim Light (Left) */}
+        <directionalLight
+          position={[-5.5, 4.0, 2.5]}
+          intensity={2.6}
+          color="#fef08a"
         />
 
-        {/* Ground Pond Water Reflection (Upward bounce) */}
-        <directionalLight 
-          position={[0, -3.5, 2.0]} 
-          intensity={1.0} 
-          color="#34d399" 
+        {/* Deep Violet Edge Rim Light (Right Back) */}
+        <directionalLight
+          position={[0, 5.0, -4.5]}
+          intensity={2.8}
+          color="#c084fc"
         />
 
-        {/* Ethereal Floating Forest Particles */}
-        <Sparkles 
-          count={35}
+        {/* Bottom ground bounce */}
+        <directionalLight
+          position={[0, -3.5, 2.0]}
+          intensity={1.2}
+          color="#a855f7"
+        />
+
+        {/* Ethereal Floating Amethyst/Gold Particles */}
+        <Sparkles
+          count={28}
           scale={6.5}
-          size={2.2}
+          size={2.0}
           speed={0.25}
           opacity={0.4}
           color={particleColor}
         />
 
         <Suspense fallback={null}>
-          <group 
-            position={bottlePosition} 
-            rotation={bottleRotation} 
+          <group
+            position={bottlePosition}
+            rotation={bottleRotation}
             scale={bottleScale}
           >
-            <PerfumeBottle3D 
-              liquidColor={liquidColor} 
+            <PerfumeBottle3D
+              liquidColor={liquidColor}
               liquidEmissive={liquidEmissive}
+              fragranceName={fragranceName}
               scrollProgress={scrollProgress}
               scrollVelocity={scrollVelocity}
               mousePos={mousePos}
             />
 
-            {/* Natural soft contact shadow underneath bottle */}
-            <ContactShadows 
-              position={[0, -1.35, 0]} 
-              opacity={0.7} 
-              scale={3.8} 
-              blur={2.0} 
-              far={2.5} 
-              color="#02140a"
+            {/* Soft contact shadow underneath bottle (frames=1 renders once on GPU for maximum mobile FPS) */}
+            <ContactShadows
+              position={[0, -1.35, 0]}
+              opacity={0.7}
+              scale={3.8}
+              blur={2.0}
+              far={2.5}
+              color="#0d0317"
+              frames={1}
             />
           </group>
         </Suspense>

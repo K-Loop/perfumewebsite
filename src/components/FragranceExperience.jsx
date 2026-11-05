@@ -1,39 +1,80 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import PerfumeScene from './PerfumeScene';
-import { FRAGRANCES } from '../data/fragrances';
+import { BRAND, FRAGRANCES } from '../data/fragrances';
 
 gsap.registerPlugin(ScrollTrigger);
+
+// 6 Keyframe snap stops for the 6 fragrances + 1 Hero frame:
+// 0.000: Hero Stage
+// 0.167: 01 OCEAN BREEZE
+// 0.333: 02 BLUSH PETALS
+// 0.500: 03 DARK VANILLA BLOOM
+// 0.667: 04 MIDNIGHT VELVET
+// 0.833: 05 ROYAL SPICE
+// 1.000: 06 MIDNIGHT TERRAIN
+const SNAP_STOPS = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1];
 
 export default function FragranceExperience({ onSelectFragrance, onExploreCollection }) {
   const containerRef = useRef(null);
   const heroTextRef = useRef(null);
   const fragrancePanelsRef = useRef([]);
 
-  // Active state driving 3D bottle and atmospheric lighting
+  // Active fragrance tracking
   const [activeFragranceIndex, setActiveFragranceIndex] = useState(0);
+  const activeIndexRef = useRef(0);
+  const hasSettledRef = useRef(false);
+
   const [bottleTransform, setBottleTransform] = useState({
     position: [0, 0.22, 0],
     rotation: [0, 0, 0],
     scale: 0.75
   });
+
   const [liquidColor, setLiquidColor] = useState(FRAGRANCES[0].liquidColor);
-  const [liquidEmissive, setLiquidEmissive] = useState("#03331c");
+  const [liquidEmissive, setLiquidEmissive] = useState(FRAGRANCES[0].liquidEmissive);
   const [particleColor, setParticleColor] = useState(FRAGRANCES[0].accentColor);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [scrollVelocity, setScrollVelocity] = useState(0);
 
-  useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+  // Smooth frame jumping for dots, buttons, and mobile controls
+  const scrollToFragrance = useCallback((idx) => {
+    const trigger = ScrollTrigger.getById("fragrance-hero-scroll");
+    if (!trigger) return;
+    // idx 0 -> p = 1/6, idx 1 -> p = 2/6, etc.
+    const targetProgress = (idx + 1) / 6;
+    const targetScroll = trigger.start + targetProgress * (trigger.end - trigger.start);
+    window.scrollTo({
+      top: targetScroll,
+      behavior: 'smooth'
+    });
+  }, []);
 
-    // Responsive initial hero settings:
-    // On mobile, bottle is positioned at natural eye-level (y = 0.18) with scale 0.48
-    // so it never collides with the top navbar
-    const initialPos = [0, isMobile ? 0.18 : 0.22, 0];
-    const initialScale = isMobile ? 0.48 : isTablet ? 0.64 : 0.75;
+  const scrollToHero = useCallback(() => {
+    const trigger = ScrollTrigger.getById("fragrance-hero-scroll");
+    if (!trigger) return;
+    window.scrollTo({
+      top: trigger.start,
+      behavior: 'smooth'
+    });
+  }, []);
+
+  useEffect(() => {
+    const checkLayout = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isMobile = w < 768 || w < h;
+      const isTablet = w >= 768 && w < 1024 && w > h;
+      return { isMobile, isTablet };
+    };
+
+    const { isMobile, isTablet } = checkLayout();
+
+    // Initial safe hero settings
+    const initialPos = [0, isMobile ? 0.12 : 0.22, 0];
+    const initialScale = isMobile ? 0.38 : isTablet ? 0.64 : 0.75;
 
     setBottleTransform({
       position: initialPos,
@@ -44,71 +85,105 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
         scrollTrigger: {
+          id: "fragrance-hero-scroll",
           trigger: containerRef.current,
           start: "top top",
-          end: "+=950vh",
+          end: "+=650vh",
           pin: true,
-          scrub: 2.2,
+          scrub: 0.8, // Immediate, silky-smooth 60/120/144Hz responsive follow
           anticipatePin: 1,
+          snap: {
+            snapTo: SNAP_STOPS,
+            duration: { min: 0.20, max: 0.38 },
+            delay: 0.05,
+            ease: "power2.out",
+            inertia: false // Prevents skipping frames when fast scrolling
+          },
           onUpdate: (self) => {
             const p = self.progress;
             const velocity = self.getVelocity() / 1500;
-            
+            const { isMobile: currentIsMobile, isTablet: currentIsTablet } = checkLayout();
+
             setScrollProgress(p);
             setScrollVelocity(velocity);
 
+            // 6 Distinct Fragrance Chapters with exact midpoints:
+            // Scent 0: [0.00, 0.25) -> Snap: 0.167
+            // Scent 1: [0.25, 0.42) -> Snap: 0.333
+            // Scent 2: [0.42, 0.58) -> Snap: 0.500
+            // Scent 3: [0.58, 0.75) -> Snap: 0.667
+            // Scent 4: [0.75, 0.92) -> Snap: 0.833
+            // Scent 5: [0.92, 1.00] -> Snap: 1.000
             let scentIdx = 0;
-            if (p < 0.38) {
-              scentIdx = 0; // Forest
-            } else if (p < 0.60) {
-              scentIdx = 1; // Bloom
-            } else if (p < 0.82) {
-              scentIdx = 2; // Oud
+            if (p < 0.25) {
+              scentIdx = 0; // 01 Ocean Breeze
+            } else if (p < 0.42) {
+              scentIdx = 1; // 02 Blush Petals
+            } else if (p < 0.58) {
+              scentIdx = 2; // 03 Dark Vanilla Bloom
+            } else if (p < 0.75) {
+              scentIdx = 3; // 04 Midnight Velvet
+            } else if (p < 0.92) {
+              scentIdx = 4; // 05 Royal Spice
             } else {
-              scentIdx = 3; // Ocean
+              scentIdx = 5; // 06 Midnight Terrain
             }
-            setActiveFragranceIndex(scentIdx);
 
-            const activeScent = FRAGRANCES[scentIdx];
-            setLiquidColor(activeScent.liquidColor);
-            setLiquidEmissive(activeScent.liquidEmissive || "#03331c");
-            setParticleColor(activeScent.accentColor);
+            // CRITICAL OPTIMIZATION: Only update fragrance state when index crosses boundary!
+            if (scentIdx !== activeIndexRef.current) {
+              activeIndexRef.current = scentIdx;
+              setActiveFragranceIndex(scentIdx);
+              const activeScent = FRAGRANCES[scentIdx];
+              setLiquidColor(activeScent.liquidColor);
+              setLiquidEmissive(activeScent.liquidEmissive);
+              setParticleColor(activeScent.accentColor);
+            }
 
-            // Responsive 3D bottle trajectory:
+            // Safe, responsive bottle trajectory:
             // Desktop: travels to left (x = -1.95, y = 0.08)
-            // Mobile: stays centered in the upper viewport (x = 0, y = 1.35, scale = 0.48)
-            // leaving the lower 50% for the fragrance card!
-            if (p <= 0.14) {
+            // Mobile: stays safely centered in upper viewport (x = 0, y = 0.50, scale = 0.35)
+            if (p <= 0.06) {
               setBottleTransform({
-                position: initialPos,
+                position: [0, currentIsMobile ? 0.12 : 0.22, 0],
                 rotation: [0, 0, 0],
-                scale: initialScale
+                scale: currentIsMobile ? 0.38 : currentIsTablet ? 0.64 : 0.75
               });
+              hasSettledRef.current = false;
             } else {
-              const shiftProgress = Math.min(1, (p - 0.14) / 0.20);
-              
-              const targetX = isMobile ? 0 : isTablet ? -1.35 : -1.95;
-              const targetY = isMobile ? 0.65 : 0.08;
-              const targetScale = isMobile ? 0.46 : isTablet ? 0.60 : 0.70;
-              const targetRotY = isMobile ? (shiftProgress * 0.22) : 0.32;
+              const shiftProgress = Math.min(1, (p - 0.06) / 0.10);
+              const targetX = currentIsMobile ? 0 : currentIsTablet ? -1.35 : -1.95;
+              const targetY = currentIsMobile ? 0.50 : 0.08;
+              const targetScale = currentIsMobile ? 0.35 : currentIsTablet ? 0.60 : 0.70;
+              const targetRotY = currentIsMobile ? (shiftProgress * 0.18) : 0.32;
 
-              setBottleTransform({
-                position: [
-                  gsap.utils.interpolate(initialPos[0], targetX, shiftProgress),
-                  gsap.utils.interpolate(initialPos[1], targetY, shiftProgress),
-                  0
-                ],
-                rotation: [
-                  0,
-                  gsap.utils.interpolate(0, targetRotY, shiftProgress),
-                  0
-                ],
-                scale: gsap.utils.interpolate(
-                  initialScale,
-                  targetScale,
-                  shiftProgress
-                )
-              });
+              if (shiftProgress < 1.0) {
+                setBottleTransform({
+                  position: [
+                    gsap.utils.interpolate(0, targetX, shiftProgress),
+                    gsap.utils.interpolate(currentIsMobile ? 0.12 : 0.22, targetY, shiftProgress),
+                    0
+                  ],
+                  rotation: [
+                    0,
+                    gsap.utils.interpolate(0, targetRotY, shiftProgress),
+                    0
+                  ],
+                  scale: gsap.utils.interpolate(
+                    currentIsMobile ? 0.38 : 0.75,
+                    targetScale,
+                    shiftProgress
+                  )
+                });
+                hasSettledRef.current = false;
+              } else if (!hasSettledRef.current) {
+                // Lock exact final position once to avoid 144Hz continuous React re-renders!
+                setBottleTransform({
+                  position: [targetX, targetY, 0],
+                  rotation: [0, targetRotY, 0],
+                  scale: targetScale
+                });
+                hasSettledRef.current = true;
+              }
             }
           }
         }
@@ -117,98 +192,134 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
       // 1. HERO TEXT FADE OUT
       tl.to(heroTextRef.current, {
         opacity: 0,
-        y: -35,
-        scale: 0.97,
-        duration: 0.12,
+        y: -25,
+        scale: 0.96,
+        duration: 0.07,
         ease: "power1.inOut"
-      }, 0.06);
+      }, 0.02);
 
-      // 2. FRAGRANCE 01 (Forest) Entrance
+      // 2. FRAGRANCE 01 (Ocean Breeze) - peak at 0.1667 (1/6)
       if (fragrancePanelsRef.current[0]) {
-        tl.fromTo(fragrancePanelsRef.current[0], 
-          { opacity: 0, y: 30, x: 0 },
-          { opacity: 1, y: 0, x: 0, duration: 0.16, ease: "power2.out" },
-          0.16
+        tl.fromTo(fragrancePanelsRef.current[0],
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+          0.08
         ).to(fragrancePanelsRef.current[0], {
           opacity: 0,
-          y: -20,
-          duration: 0.12,
+          y: -15,
+          duration: 0.05,
           ease: "power2.in"
-        }, 0.34);
+        }, 0.22);
       }
 
-      // 3. FRAGRANCE 02 (Bloom) Entrance
+      // 3. FRAGRANCE 02 (Blush Petals) - peak at 0.3333 (2/6)
       if (fragrancePanelsRef.current[1]) {
         tl.fromTo(fragrancePanelsRef.current[1],
-          { opacity: 0, y: 30, x: 0 },
-          { opacity: 1, y: 0, x: 0, duration: 0.16, ease: "power2.out" },
-          0.38
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+          0.24
         ).to(fragrancePanelsRef.current[1], {
           opacity: 0,
-          y: -20,
-          duration: 0.12,
+          y: -15,
+          duration: 0.05,
+          ease: "power2.in"
+        }, 0.39);
+      }
+
+      // 4. FRAGRANCE 03 (Dark Vanilla Bloom) - peak at 0.5000 (3/6)
+      if (fragrancePanelsRef.current[2]) {
+        tl.fromTo(fragrancePanelsRef.current[2],
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+          0.41
+        ).to(fragrancePanelsRef.current[2], {
+          opacity: 0,
+          y: -15,
+          duration: 0.05,
           ease: "power2.in"
         }, 0.56);
       }
 
-      // 4. FRAGRANCE 03 (Oud) Entrance
-      if (fragrancePanelsRef.current[2]) {
-        tl.fromTo(fragrancePanelsRef.current[2],
-          { opacity: 0, y: 30, x: 0 },
-          { opacity: 1, y: 0, x: 0, duration: 0.16, ease: "power2.out" },
-          0.60
-        ).to(fragrancePanelsRef.current[2], {
-          opacity: 0,
-          y: -20,
-          duration: 0.12,
-          ease: "power2.in"
-        }, 0.78);
-      }
-
-      // 5. FRAGRANCE 04 (Ocean) Entrance
+      // 5. FRAGRANCE 04 (Midnight Velvet) - peak at 0.6667 (4/6)
       if (fragrancePanelsRef.current[3]) {
         tl.fromTo(fragrancePanelsRef.current[3],
-          { opacity: 0, y: 30, x: 0 },
-          { opacity: 1, y: 0, x: 0, duration: 0.16, ease: "power2.out" },
-          0.82
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+          0.58
+        ).to(fragrancePanelsRef.current[3], {
+          opacity: 0,
+          y: -15,
+          duration: 0.05,
+          ease: "power2.in"
+        }, 0.73);
+      }
+
+      // 6. FRAGRANCE 05 (Royal Spice) - peak at 0.8333 (5/6)
+      if (fragrancePanelsRef.current[4]) {
+        tl.fromTo(fragrancePanelsRef.current[4],
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+          0.75
+        ).to(fragrancePanelsRef.current[4], {
+          opacity: 0,
+          y: -15,
+          duration: 0.05,
+          ease: "power2.in"
+        }, 0.90);
+      }
+
+      // 7. FRAGRANCE 06 (Midnight Terrain) - peak at 1.0000 (6/6)
+      if (fragrancePanelsRef.current[5]) {
+        tl.fromTo(fragrancePanelsRef.current[5],
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+          0.92
         );
       }
     }, containerRef);
 
-    return () => ctx.revert();
-  }, []);
+    const handleResize = () => {
+      ScrollTrigger.refresh();
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ctx.revert();
+    };
+  }, [scrollToFragrance]);
 
   return (
-    <section 
-      ref={containerRef} 
+    <section
+      ref={containerRef}
       id="hero"
-      className="relative w-full h-screen overflow-hidden bg-black select-none"
+      className="relative w-full h-screen overflow-hidden bg-[#06040a] select-none"
     >
-      {/* ATMOSPHERIC BACKGROUNDS LAYER */}
-      <div className="absolute inset-0 z-0">
+      {/* ATMOSPHERIC BACKGROUNDS LAYER (All 6 Luxury Atmospheres) */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {FRAGRANCES.map((fragrance, idx) => (
           <div
             key={fragrance.id}
-            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${
-              activeFragranceIndex === idx ? 'opacity-85 scale-100' : 'opacity-0 scale-105'
-            }`}
+            className={`absolute inset-0 bg-cover bg-center will-change-opacity transform-gpu ${activeFragranceIndex === idx ? 'opacity-85 scale-100' : 'opacity-0 scale-105'
+              }`}
             style={{
               backgroundImage: `url(${fragrance.bgImage})`,
-              transition: 'opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1), transform 2.8s ease-out'
+              transition: 'opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 1.8s ease-out'
             }}
           >
-            {/* Cinematic dark vignette and atmospheric overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60" />
-            <div className="absolute inset-0 bg-radial-at-c from-transparent via-black/20 to-black/85" />
+            {/* Luxury dark vignette overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/60" />
+            <div className="absolute inset-0 bg-radial-at-c from-transparent via-black/25 to-black/85" />
           </div>
         ))}
       </div>
 
       {/* PERSISTENT 3D PERFUME BOTTLE CANVAS */}
-      <div className="absolute inset-0 z-10">
+      <div className="absolute inset-0 z-10 pointer-events-none">
         <PerfumeScene
           liquidColor={liquidColor}
           liquidEmissive={liquidEmissive}
+          fragranceName={FRAGRANCES[activeFragranceIndex]?.name || "OCEAN BREEZE"}
           bottlePosition={bottleTransform.position}
           bottleRotation={bottleTransform.rotation}
           bottleScale={bottleTransform.scale}
@@ -219,99 +330,110 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
       </div>
 
       {/* SECTION 01 — HERO TYPOGRAPHY & CALL TO ACTION */}
-      <div 
+      <div
         ref={heroTextRef}
         className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-end items-center text-center px-4 sm:px-6 pb-6 sm:pb-12 max-w-4xl mx-auto"
       >
         <div className="space-y-3 sm:space-y-4 max-w-xl pointer-events-auto">
           {/* Main Headline */}
           <div className="space-y-1">
-            <p className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-[#d4af37] font-medium flex items-center justify-center gap-2">
-              <span className="w-5 h-[1px] bg-[#d4af37]/60" />
-              NATURE IN A BOTTLE
-              <span className="w-5 h-[1px] bg-[#d4af37]/60" />
+            <p className="text-[10px] sm:text-xs uppercase tracking-[0.4em] text-[#f6d87c] font-medium flex items-center justify-center gap-2">
+              <span className="w-5 h-[1px] bg-[#f6d87c]/60" />
+              {BRAND.fullName}
+              <span className="w-5 h-[1px] bg-[#f6d87c]/60" />
             </p>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif text-white uppercase tracking-[0.12em] leading-tight drop-shadow-2xl">
-              SCENT IS AN <span className="italic font-light text-[#f4eedb]">EXPERIENCE.</span>
+              A FRAGRANCE THAT <br />
+              <span className="italic font-light text-[#f8f4e6]">LEAVES ITS MARK.</span>
             </h1>
           </div>
 
           {/* Subtext */}
-          <p className="text-[11px] sm:text-xs tracking-[0.18em] uppercase text-neutral-300 font-light max-w-xs sm:max-w-md mx-auto leading-relaxed">
-            Scents that move with you. Inspired by nature, crafted for moments.
+          <p className="text-[11px] sm:text-xs tracking-[0.2em] uppercase text-neutral-300 font-light max-w-xs sm:max-w-md mx-auto leading-relaxed">
+            {BRAND.subTagline} — Handcrafted Extrait de Parfum.
           </p>
 
-          {/* CTA */}
-          <div className="pt-1 flex items-center justify-center">
+          {/* CTA Buttons */}
+          <div className="pt-1 flex items-center justify-center gap-3">
+            <button
+              onClick={() => scrollToFragrance(0)}
+              className="px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-[#f8f4e6] text-black text-[11px] sm:text-xs uppercase tracking-[0.2em] font-semibold hover:bg-[#d4af37] transition-all duration-300 shadow-xl shadow-black/80 flex items-center gap-2 group cursor-pointer"
+            >
+              <span>EXPERIENCE SCENTS</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+            </button>
             <button
               onClick={onExploreCollection}
-              className="px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-[#f4eedb] text-black text-[11px] sm:text-xs uppercase tracking-[0.2em] font-semibold hover:bg-[#d4af37] transition-all duration-300 shadow-xl shadow-black/80 flex items-center gap-2 group cursor-pointer"
+              className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full border border-white/20 text-white text-[11px] sm:text-xs uppercase tracking-[0.2em] font-medium hover:border-[#f6d87c] hover:text-[#f6d87c] transition-all duration-300 backdrop-blur-sm cursor-pointer"
             >
-              <span>EXPLORE THE COLLECTION</span>
-              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+              COLLECTION
             </button>
           </div>
 
           {/* Mouse Scroll Indicator */}
-          <div className="pt-2 flex flex-col items-center gap-1 text-white/50">
-            <div className="w-3.5 h-6 sm:w-4 sm:h-7 rounded-full border border-white/40 flex items-start justify-center p-0.5 sm:p-1">
-              <div className="w-1 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+          <div
+            onClick={() => scrollToFragrance(0)}
+            className="pt-2 flex flex-col items-center gap-1 text-white/50 cursor-pointer group"
+          >
+            <div className="w-3.5 h-6 sm:w-4 sm:h-7 rounded-full border border-white/40 group-hover:border-[#f6d87c] flex items-start justify-center p-0.5 sm:p-1 transition-colors">
+              <div className="w-1 h-1.5 rounded-full bg-[#f6d87c] animate-pulse" />
             </div>
-            <span className="text-[8px] sm:text-[9px] tracking-[0.25em] uppercase text-white/60">SCROLL</span>
+            <span className="text-[8px] sm:text-[9px] tracking-[0.25em] uppercase text-white/60 group-hover:text-[#f6d87c] transition-colors">
+              SCROLL TO DISCOVER
+            </span>
           </div>
         </div>
       </div>
 
-      {/* SECTION 02 — SIGNATURE SCENTS NARRATIVE PANELS */}
-      {/* Responsive layout: on mobile, sits in bottom half (items-end pb-6) with frosted glass card */}
-      <div 
-        id="scents" 
-        className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center md:items-center md:justify-end px-4 sm:px-8 md:px-16 lg:px-24 pb-6 sm:pb-8 md:pb-0"
+      {/* SECTION 02 — 6 SIGNATURE SCENTS NARRATIVE PANELS */}
+      <div
+        id="scents"
+        className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center md:items-center md:justify-end px-3 sm:px-8 md:px-16 lg:px-24 pb-4 sm:pb-8 md:pb-0"
       >
-        <div className="w-full md:w-1/2 lg:w-5/12 max-w-lg relative min-h-[360px] sm:min-h-[420px] flex items-center">
+        <div className="w-full md:w-1/2 lg:w-5/12 max-w-lg relative min-h-0 sm:min-h-[440px] flex items-center">
           {FRAGRANCES.map((fragrance, idx) => (
             <div
               key={fragrance.id}
               ref={(el) => (fragrancePanelsRef.current[idx] = el)}
-              className="absolute inset-0 flex flex-col justify-center space-y-3 sm:space-y-4 md:space-y-5 pointer-events-auto opacity-0 p-5 sm:p-6 md:p-0 rounded-2xl md:rounded-none bg-black/60 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border border-white/10 md:border-none shadow-2xl md:shadow-none"
+              className={`absolute inset-0 flex flex-col justify-center space-y-2.5 sm:space-y-4 md:space-y-5 opacity-0 p-4 sm:p-6 md:p-0 rounded-2xl md:rounded-none bg-black/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border border-white/10 md:border-none shadow-2xl md:shadow-none max-h-[46vh] sm:max-h-none overflow-y-auto md:overflow-visible transition-all duration-200 ${activeFragranceIndex === idx ? 'pointer-events-auto' : 'pointer-events-none'
+                }`}
             >
               {/* Scent Counter & Category Pill */}
               <div className="flex items-center justify-between md:justify-start gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] sm:text-xs font-mono tracking-widest text-[#d4af37]">
-                    {fragrance.index} / 04
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-[10px] sm:text-xs font-mono tracking-widest text-[#f6d87c]">
+                    {fragrance.index} / 06
                   </span>
-                  <span className="w-6 sm:w-8 h-[1px] bg-white/20" />
-                  <span className="text-[9px] sm:text-[11px] uppercase tracking-[0.3em] text-white/80 font-medium">
+                  <span className="w-5 sm:w-8 h-[1px] bg-white/20" />
+                  <span className="text-[9px] sm:text-[11px] uppercase tracking-[0.25em] text-white/85 font-medium truncate">
                     {fragrance.subheading}
                   </span>
                 </div>
 
-                {/* Mobile Fragrance Badge */}
-                <span 
-                  className="md:hidden text-[9px] font-mono tracking-widest px-2 py-0.5 rounded-full border border-white/10"
+                <span
+                  className="md:hidden text-[9px] font-mono tracking-wider px-2 py-0.5 rounded-full border border-white/10"
                   style={{ color: fragrance.accentColor }}
                 >
                   {fragrance.volume}
                 </span>
               </div>
 
-              {/* Tagline / Subtitle */}
-              <p 
-                className="text-[11px] sm:text-xs md:text-sm uppercase tracking-[0.3em] font-semibold"
+              {/* Tagline */}
+              <p
+                className="text-[10px] sm:text-xs md:text-sm uppercase tracking-[0.25em] font-semibold"
                 style={{ color: fragrance.accentColor }}
               >
                 {fragrance.tagline}
               </p>
 
               {/* Major Editorial Headline */}
-              <h2 className="text-xl sm:text-3xl lg:text-5xl font-bold tracking-[0.08em] text-white font-serif uppercase leading-tight drop-shadow-lg">
-                {fragrance.headline}
+              <h2 className="text-lg sm:text-3xl lg:text-5xl font-bold tracking-[0.08em] text-white font-serif uppercase leading-tight drop-shadow-lg">
+                {fragrance.name}
               </h2>
 
               {/* Editorial Description */}
               <p className="text-[11px] sm:text-xs md:text-sm text-neutral-300 font-light leading-relaxed tracking-wider line-clamp-2 md:line-clamp-none">
-                {fragrance.description}
+                {fragrance.shortDesc}
               </p>
 
               {/* Three Fragrance Notes */}
@@ -319,7 +441,7 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
                 {fragrance.notes.map((note, nIdx) => (
                   <div key={nIdx} className="space-y-0.5">
                     <p className="text-[8px] sm:text-[9px] uppercase tracking-wider text-neutral-400">
-                      {note.name}
+                      {note.name.split(' ')[0]}
                     </p>
                     <p className="text-[10px] sm:text-xs font-medium text-white tracking-wide truncate">
                       {note.value}
@@ -332,7 +454,7 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
               <div className="flex items-center justify-between gap-3 pt-1">
                 <button
                   onClick={() => onSelectFragrance(fragrance)}
-                  className="flex-1 md:flex-initial px-5 py-2.5 rounded-full text-black text-[11px] sm:text-xs uppercase tracking-[0.2em] font-semibold transition-all duration-300 shadow-lg cursor-pointer flex items-center justify-center gap-2 group"
+                  className="flex-1 md:flex-initial px-5 py-2.5 rounded-full text-black text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold transition-all duration-300 shadow-lg cursor-pointer flex items-center justify-center gap-2 group"
                   style={{ backgroundColor: fragrance.accentColor }}
                 >
                   <span>EXPLORE {fragrance.name}</span>
@@ -340,9 +462,9 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
                 </button>
 
                 <div className="hidden sm:flex items-center gap-2">
-                  {fragrance.accords.map((accord, aIdx) => (
-                    <span 
-                      key={aIdx} 
+                  {fragrance.accords.slice(0, 3).map((accord, aIdx) => (
+                    <span
+                      key={aIdx}
                       className="text-[9px] sm:text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-300"
                     >
                       {accord}
@@ -350,21 +472,57 @@ export default function FragranceExperience({ onSelectFragrance, onExploreCollec
                   ))}
                 </div>
               </div>
+
+              {/* Mobile Frame Navigation Controls */}
+              <div className="flex sm:hidden items-center justify-between pt-2 border-t border-white/10 text-[10px] font-mono">
+                <button
+                  onClick={() => {
+                    if (idx === 0) {
+                      scrollToHero();
+                    } else {
+                      scrollToFragrance(idx - 1);
+                    }
+                  }}
+                  className="px-2.5 py-1 rounded-full border border-white/20 text-white/80 active:bg-white/10 flex items-center gap-1 cursor-pointer"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                  <span>{idx === 0 ? "Hero" : "Prev"}</span>
+                </button>
+
+                <span className="text-[#f6d87c] text-[10px] tracking-wider">
+                  {idx + 1} of 6
+                </span>
+
+                <button
+                  onClick={() => {
+                    if (idx < 5) {
+                      scrollToFragrance(idx + 1);
+                    }
+                  }}
+                  disabled={idx === 5}
+                  className={`px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1 cursor-pointer ${idx === 5 ? 'opacity-30 cursor-not-allowed' : 'text-white/80 active:bg-white/10'
+                    }`}
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* EXPERIENCE PROGRESS INDICATOR */}
-      <div className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center space-y-3 md:space-y-4">
+      {/* EXPERIENCE PROGRESS INDICATOR (Interactive 6 Scent Dots) */}
+      <div className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center space-y-2.5 sm:space-y-3">
         {FRAGRANCES.map((f, i) => (
-          <div
+          <button
             key={f.id}
-            className={`w-1 md:w-1.5 transition-all duration-500 rounded-full ${
-              activeFragranceIndex === i
-                ? 'h-6 md:h-8 bg-[#d4af37]'
-                : 'h-1 md:h-1.5 bg-white/20 hover:bg-white/40'
-            }`}
+            onClick={() => scrollToFragrance(i)}
+            title={`${f.index} ${f.name}`}
+            className={`transition-all duration-300 rounded-full cursor-pointer ${activeFragranceIndex === i
+                ? 'w-1.5 sm:w-2 h-7 sm:h-9 bg-[#f6d87c] shadow-lg shadow-[#f6d87c]/40'
+                : 'w-1 sm:w-1.5 h-1 sm:h-1.5 bg-white/25 hover:bg-white/70 hover:scale-125'
+              }`}
           />
         ))}
       </div>
